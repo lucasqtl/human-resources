@@ -10,36 +10,44 @@ Este projeto é um sistema de gerenciamento de recursos humanos (RH) desenvolvid
 -   **Avaliação de Performance:** Adicione, remova e visualize avaliações de desempenho dos funcionários.
 -   **Gestão de Treinamentos:** Agende, remova e visualize sessões de treinamento para cada funcionário.
 -   **Solicitações de Afastamento:** Gerencie pedidos de afastamento (férias, licenças, etc).
--   **Cálculo de Pagamentos:** Calcule o pagamento de cada funcionário com base nas horas trabalhadas.
+-   **Cálculo de Pagamentos:** Calcule o pagamento de cada funcionário com base em diferentes estratégias (ex: por hora, mensal).
 -   **Relatórios de Compliance:** Registre, remova e visualize violações de compliance e gere relatórios.
+-   **Notificações Automáticas:** O sistema notifica módulos interessados (Observers) sobre alterações em dados críticos (ex: salário).
 
-## Refatoração e Padrões de Projeto
+## Refatoração e Padrões de Projeto Aplicados
 
-O código original foi submetido a um processo de refatoração para melhorar sua estrutura e manutenibilidade, aplicando os seguintes padrões de projeto criacionais:
+O código foi submetido a um processo de refatoração para melhorar sua estrutura, aplicando os seguintes padrões de projeto:
 
-1.  **Estruturação Inicial:** O código, que antes residia em um único arquivo, foi modularizado em diferentes arquivos (`models.py`, `services.py`, `main.py`, etc.), seguindo o princípio da **Separação de Responsabilidades**.
+1.  **Estruturação Inicial:** O código, que antes residia em um único arquivo, foi modularizado em `models.py`, `services.py`, `main.py`, etc., seguindo o princípio da **Separação de Responsabilidades**.
+
+### Padrões Criacionais
 
 2.  **Factory Method (Simple Factory):**
-    -   **Problema:** A criação de diferentes tipos de funcionários (`Employee`, `Manager`, `Intern`) estava acoplada diretamente à lógica da interface principal (`main.py`) através de um bloco `if/elif/else`.
-    -   **Solução:** Foi criada a `EmployeeFactory`, que centraliza e encapsula a lógica de instanciação. Isso desacoplou o código cliente da criação de objetos, tornando o sistema mais flexível a novos tipos de funcionários.
+    -   **Problema:** A criação de diferentes tipos de funcionários estava acoplada diretamente à lógica principal (`main.py`).
+    -   **Solução:** A `EmployeeFactory` foi criada para centralizar e encapsular a lógica de instanciação, desacoplando o código cliente da criação de objetos.
 
 3.  **Builder:**
-    -   **Problema:** Os construtores das classes de funcionário exigiam uma longa e inflexível lista de parâmetros, dificultando a leitura e a criação dos objetos.
-    -   **Solução:** Foi implementado o `EmployeeBuilder`, que permite a construção de um objeto complexo passo a passo. Isso tornou a criação de funcionários mais legível, flexível e escalável para futuros atributos.
+    -   **Problema:** Os construtores das classes de funcionário exigiam uma longa e inflexível lista de parâmetros.
+    -   **Solução:** O `EmployeeBuilder` foi implementado para permitir a construção de objetos complexos passo a passo, tornando o código mais legível e escalável.
 
 4.  **Singleton:**
-    -   **Problema:** O estado da aplicação (as listas de funcionários, presenças, etc.) era gerenciado de forma descentralizada, dificultando o controle e o acesso consistente aos dados.
-    -   **Solução:** A classe `HRSystem` foi criada como um Singleton, garantindo uma única instância para gerenciar todo o estado do sistema. Ela funciona como um ponto de acesso global e seguro aos dados, centralizando a lógica de negócio.
+    -   **Problema:** O estado da aplicação (as listas de funcionários) era gerenciado de forma descentralizada.
+    -   **Solução:** A classe `HRSystem` foi criada como um Singleton para garantir uma única instância que gerencia todo o estado do sistema, funcionando como um ponto de acesso global e seguro.
+
+### Padrões Comportamentais
+
+5.  **Strategy:**
+    -   **Problema:** A lógica de cálculo de pagamento era fixa (apenas por hora), dificultando a adição de novas formas de cálculo (ex: salário mensal).
+    -   **Solução:** Foi definida uma família de algoritmos de pagamento (`HourlyPaymentStrategy`, `MonthlyPaymentStrategy`). A classe `PaymentContext` agora utiliza um desses objetos de estratégia para realizar o cálculo, permitindo que o método de pagamento seja alterado dinamicamente.
+
+6.  **Observer:**
+    -   **Problema:** Não havia um mecanismo para que outras partes do sistema fossem notificadas sobre mudanças importantes nos dados de um funcionário (ex: alteração de salário).
+    -   **Solução:** A classe `Employee` foi transformada em um "Subject" (Observável). Agora, objetos "Observers" (como o `PayrollNotifier`) podem se registrar para serem notificados automaticamente sempre que o estado do funcionário muda, garantindo baixo acoplamento.
 
 ## Justificativa das Funcionalidades Ausentes
 
-Conforme a análise de requisitos, duas funcionalidades de alto nível não foram implementadas. A justificativa se baseia na complexidade e no escopo definido para este projeto:
-
--   **Recruitment and Onboarding (Recrutamento e Integração):**
-    -   **Justificativa:** Um módulo de recrutamento é, em essência, um subsistema completo. Ele lida com entidades externas (candidatos), múltiplas etapas (triagem, entrevistas, oferta) e requer um modelo de dados e regras de negócio distintos do gerenciamento de funcionários internos. A implementação demandaria um escopo significativamente maior, fugindo do foco central do projeto, que é a gestão de funcionários já contratados.
-
--   **Employee Self-Service Portal (Portal de Autoatendimento):**
-    -   **Justificativa:** A implementação de um "portal" pressupõe uma arquitetura de software diferente da adotada (interface de linha de comando administrativa). Exigiria a criação de uma interface gráfica (GUI) ou web, com sistemas de autenticação de usuário, gerenciamento de sessão e controle de permissões por nível de acesso. Tais requisitos de arquitetura e segurança extrapolam o escopo de um projeto focado na aplicação de padrões de OO em um ambiente de terminal.
+-   **Recruitment and Onboarding:** Não implementado por ser um subsistema complexo com um escopo de dados e regras de negócio distinto da gestão de funcionários internos.
+-   **Employee Self-Service Portal:** Não implementado por exigir uma arquitetura de software diferente (GUI ou Web) com requisitos de segurança e autenticação fora do escopo deste projeto de terminal.
 
 ## Como Executar
 
@@ -47,7 +55,7 @@ Conforme a análise de requisitos, duas funcionalidades de alto nível não fora
     -   Python 3.x instalado.
 
 2.  **Execução:**
-    -   No terminal, navegue até a pasta do projeto e execute o arquivo principal (ex: `main.py`).
+    -   No terminal, navegue até a pasta do projeto e execute o arquivo principal: `python main.py`.
     -   Siga as instruções do menu interativo.
 
 ---
