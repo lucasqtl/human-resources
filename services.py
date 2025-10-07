@@ -1,12 +1,9 @@
 # services.py
 from datetime import datetime
 from abc import ABC, abstractmethod
-from models import Employee  # Importamos a classe Employee do nosso outro arquivo
+from models import Employee
 
 class Report(ABC):
-    """
-    Classe Abstrata para servir de modelo para qualquer tipo de relatório.
-    """
     def __init__(self, employee: Employee):
         self._employee = employee
     
@@ -15,9 +12,6 @@ class Report(ABC):
         pass
 
 class Attendance(Report):
-    """
-    Controla o registro de ponto (entrada e saída) de um funcionário.
-    """
     def __init__(self, employee: Employee):
         super().__init__(employee)
         self._record = []
@@ -58,36 +52,49 @@ class Attendance(Report):
     def generate_report(self):
         self.show_records()
 
-class PaymentCalculator(ABC):
-    """
-    Classe Abstrata para calculadoras de pagamento.
-    """
-    def __init__(self, attendance: Attendance, salary_per_hour: float):
-        self._attendance = attendance
-        self._salary_per_hour = salary_per_hour
-    
+
+# PADRÃO COMPORTAMENTAL 1: STRATEGY
+# Objetivo: Permitir que o algoritmo de cálculo de pagamento seja selecionado em tempo de execução.
+
+class PaymentStrategy(ABC):
+    """ A Interface da Estratégia declara operações comuns a todos os algoritmos suportados. """
     @abstractmethod
-    def calculate_payment(self):
+    def calculate(self, attendance: Attendance, salary_per_hour: float) -> float:
         pass
 
-class Payment(PaymentCalculator):
-    """
-    Implementação concreta que calcula o pagamento com base nas horas trabalhadas.
-    """
-    def calculate_payment(self):
+class HourlyPaymentStrategy(PaymentStrategy):
+    """ Estratégia Concreta: Calcula o pagamento com base nas horas trabalhadas. """
+    def calculate(self, attendance: Attendance, salary_per_hour: float) -> float:
         total_seconds = 0
-        for record in self._attendance._record:
+        for record in attendance._record:
             if record["in"] and record["out"]:
                 worked = record["out"] - record["in"]
                 total_seconds += worked.total_seconds()
         total_hours = total_seconds / 3600
-        pay = total_hours * self._salary_per_hour
-        return pay
+        return total_hours * salary_per_hour
+
+class MonthlyPaymentStrategy(PaymentStrategy):
+    """ Estratégia Concreta: Calcula um pagamento fixo mensal (ex: 160 horas de trabalho). """
+    def calculate(self, attendance: Attendance, salary_per_hour: float) -> float:
+        FIXED_HOURS_PER_MONTH = 160
+        return FIXED_HOURS_PER_MONTH * salary_per_hour
+
+class PaymentContext:
+    """
+    O Contexto (antes chamado de Payment) mantém uma referência a uma das estratégias.
+    Ele não conhece os detalhes da estratégia, apenas a utiliza.
+    """
+    def __init__(self, strategy: PaymentStrategy):
+        self._strategy = strategy
+    
+    def set_strategy(self, strategy: PaymentStrategy):
+        self._strategy = strategy
+
+    def calculate_payment(self, attendance: Attendance, salary_per_hour: float):
+        """ O Contexto delega o trabalho de cálculo para o objeto da Estratégia. """
+        return self._strategy.calculate(attendance, salary_per_hour)
 
 class Compliance(Report):
-    """
-    Gerencia violações de conformidade de um funcionário.
-    """
     def __init__(self, employee: Employee):
         super().__init__(employee)
         self._violations = []

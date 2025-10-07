@@ -1,17 +1,37 @@
 # models.py
 from abc import ABC, abstractmethod
 
+# Padrão Observer - Classes Base
+class Observer(ABC):
+    @abstractmethod
+    def update(self, subject):
+        pass
+
+class Subject(ABC):
+    def __init__(self):
+        self._observers = []
+
+    def attach(self, observer: Observer):
+        if observer not in self._observers:
+            self._observers.append(observer)
+
+    def detach(self, observer: Observer):
+        self._observers.remove(observer)
+
+    def notify(self):
+        for observer in self._observers:
+            observer.update(self)
+
+# CORREÇÃO: A classe base 'Person' foi movida para ANTES da classe 'Employee'.
 class Person(ABC):
     """
     Classe Abstrata que serve como um modelo base para qualquer 'pessoa' no sistema.
-    Não é possível criar um objeto diretamente dela.
     """
     def __init__(self, name, age, email):
         self._name = name
         self._age = age
         self._email = email
 
-    # Properties e Setters para validar os dados antes de atribuí-los
     @property
     def name(self):
         return self._name
@@ -45,7 +65,6 @@ class Person(ABC):
         else:
             raise ValueError("Email must contain @")
     
-    # Métodos abstratos que DEVEM ser implementados pelas classes filhas
     @abstractmethod
     def get_role(self):
         pass
@@ -54,15 +73,13 @@ class Person(ABC):
     def display_info(self):
         pass
 
-class Employee(Person):
-    """
-    Representa um funcionário. Herda de Person e adiciona atributos e
-    funcionalidades específicas de um funcionário.
-    """
+# Agora, Employee pode herdar de Person sem problemas.
+class Employee(Person, Subject):
     number_of_employees = 0
     
     def __init__(self, name, age, email, department, work_position, salary_per_hour, hire_date):
-        super().__init__(name, age, email) # Chama o construtor da classe pai (Person)
+        Person.__init__(self, name, age, email)
+        Subject.__init__(self) # Inicializa a lógica do Subject
         self._department = department
         self._work_position = work_position
         self._salary_per_hour = salary_per_hour
@@ -100,6 +117,7 @@ class Employee(Person):
     def salary_per_hour(self, value):
         if isinstance(value, (int, float)) and value > 0:
             self._salary_per_hour = value
+            self.notify() # Notifica observers sempre que o salário muda.
         else:
             raise ValueError("Salary must be a positive number")
     
@@ -127,7 +145,6 @@ class Employee(Person):
     def __str__(self):
         return self._name
 
-    # Métodos para gerenciar listas de responsabilidades do funcionário
     def add_leave_request(self, start_date, end_date, reason):
         leave = {"f_Date": start_date, "s_Date": end_date, "Description": reason}
         self._requests.append(leave)
@@ -198,6 +215,7 @@ class Employee(Person):
         else:
             print("Benefit not found.")
 
+
 class Manager(Employee):
     """
     Representa um Gerente, que é um tipo especial de Funcionário.
@@ -214,6 +232,7 @@ class Manager(Employee):
         super().display_info()
         print(f"Team Size: {self._team_size}")
         print(f"Managed Employees: {len(self._managed_employees)}")
+
 
 class Intern(Employee):
     """

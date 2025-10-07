@@ -1,8 +1,16 @@
 # main.py
-
+from services import PaymentContext, HourlyPaymentStrategy, MonthlyPaymentStrategy
+from models import Observer, Employee
 from factories import EmployeeFactory
-from services import Payment
 from hr_system import HRSystem
+
+class PayrollNotifier(Observer):
+    """ Um Observer que reage a mudanças no salário de um funcionário. """
+    def update(self, subject: Employee):
+        print(f"\n--- ATENÇÃO PAYROLL ---")
+        print(f"O salário de '{subject.name}' foi alterado para R$ {subject.salary_per_hour}/hora.")
+        print(f"Por favor, atualize os registros da folha de pagamento.")
+        print(f"----------------------")
 
 def load_initial_data(hr_system):
     """
@@ -29,6 +37,14 @@ def main():
     # Ponto de acesso global ao nosso sistema de RH
     hr = HRSystem.get_instance()
     load_initial_data(hr)
+
+    # Criando e anexando o observer para demonstração
+    payroll_system = PayrollNotifier()
+    marcela = hr.employees_list[0]
+    marcela.attach(payroll_system)
+
+    print("\n>>> MUDANDO O SALÁRIO DA MARCELA PARA DEMONSTRAR O OBSERVER <<<")
+    marcela.salary_per_hour = 55 # Esta ação vai automaticamente disparar a notificação
 
     while True:
         print("\n============== Human Resources Management System ==============\n")
@@ -66,12 +82,12 @@ def main():
                             print("Employee added successfully!")
 
                         case 3:
-                            # Lógica para modificar funcionário (acessando via Singleton)
                             print("\n--- Modify Employee ---")
                             for i, emp in enumerate(hr.employees_list):
                                 print(f"({i+1}) {emp.name}")
                             mod_index = int(input("Choose employee to modify: ")) - 1
                             if 0 <= mod_index < len(hr.employees_list):
+                                # A lógica de modificação detalhada pode ser adicionada aqui
                                 print(f"Modifying {hr.employees_list[mod_index].name}...")
                             else:
                                 print("Invalid index.")
@@ -84,18 +100,17 @@ def main():
                             hr.remove_employee(remove_index)
 
                         case 5:
-                             # Lógica para gerenciar benefícios (acessando via Singleton)
                             print("\n--- Manage Benefits ---")
                             for i, emp in enumerate(hr.employees_list):
                                 print(f"({i+1}) {emp.name}")
                             ben_index = int(input("Choose employee: ")) - 1
                             if 0 <= ben_index < len(hr.employees_list):
+                                # A lógica de benefícios detalhada pode ser adicionada aqui
                                 print(f"Managing benefits for {hr.employees_list[ben_index].name}...")
                             else:
                                 print("Invalid index.")
 
                 case 2:
-                    # Lógica de gerenciamento (acessando dados via Singleton)
                     print("\n--- Management ---")
                     for i, emp in enumerate(hr.employees_list):
                         print(f"({i+1}) {emp.name}")
@@ -127,8 +142,12 @@ def main():
                     if 0 <= person_index < len(hr.employees_list):
                         employee = hr.employees_list[person_index]
                         attendance = hr.attendance_list[person_index]
-                        payment = Payment(attendance, employee.salary_per_hour)
-                        money = payment.calculate_payment()
+
+                        # Usando o padrão Strategy corretamente
+                        strategy = HourlyPaymentStrategy()
+                        payment_context = PaymentContext(strategy)
+                        money = payment_context.calculate_payment(attendance, employee.salary_per_hour)
+                        
                         print(f"\nTotal payment for {employee.name}: R$ {money:.2f}")
                     else:
                         print("Invalid index.")
