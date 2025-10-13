@@ -9,7 +9,7 @@ class HRSystem:
     """
     Esta é a classe Singleton que gerencia o estado de todo o sistema de RH.
     """
-    _instance = None  # Atributo que vai guardar a única instância
+    _instance = None 
 
     @staticmethod
     def get_instance():
@@ -28,7 +28,6 @@ class HRSystem:
         if hasattr(self, '_initialized'):
             return
         
-        # Listas que representam o "estado" da nossa aplicação
         self.employees_list = []
         self.attendance_list = []
         self.compliance_list = []
@@ -47,7 +46,6 @@ class HRSystem:
             removed = self.employees_list.pop(index)
             self.attendance_list.pop(index)
             self.compliance_list.pop(index)
-            # A variável de classe não deve ser decrementada aqui, pois pertence ao modelo Employee
             Employee.number_of_employees -= 1 
             print(f"{removed.name} has been removed from the system.\n")
         else:

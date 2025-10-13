@@ -1,7 +1,10 @@
 # models.py
 from abc import ABC, abstractmethod
 
-# Padrão Observer - Classes Base
+# PADRÃO COMPORTAMENTAL 2: OBSERVER
+# Objetivo: Definir uma dependência de um para muitos entre objetos, de modo que, quando um objeto (o "Subject") 
+# muda de estado, todos os seus dependentes (os "Observers") são notificados e atualizados automaticamente.
+
 class Observer(ABC):
     @abstractmethod
     def update(self, subject):
@@ -22,7 +25,6 @@ class Subject(ABC):
         for observer in self._observers:
             observer.update(self)
 
-# CORREÇÃO: A classe base 'Person' foi movida para ANTES da classe 'Employee'.
 class Person(ABC):
     """
     Classe Abstrata que serve como um modelo base para qualquer 'pessoa' no sistema.
@@ -73,13 +75,12 @@ class Person(ABC):
     def display_info(self):
         pass
 
-# Agora, Employee pode herdar de Person sem problemas.
 class Employee(Person, Subject):
     number_of_employees = 0
     
     def __init__(self, name, age, email, department, work_position, salary_per_hour, hire_date):
         Person.__init__(self, name, age, email)
-        Subject.__init__(self) # Inicializa a lógica do Subject
+        Subject.__init__(self)
         self._department = department
         self._work_position = work_position
         self._salary_per_hour = salary_per_hour
@@ -117,7 +118,7 @@ class Employee(Person, Subject):
     def salary_per_hour(self, value):
         if isinstance(value, (int, float)) and value > 0:
             self._salary_per_hour = value
-            self.notify() # Notifica observers sempre que o salário muda.
+            self.notify()
         else:
             raise ValueError("Salary must be a positive number")
     

@@ -1,15 +1,40 @@
 # services.py
+
 from datetime import datetime
 from abc import ABC, abstractmethod
 from models import Employee
+
+# PADRÃO COMPORTAMENTAL 3: TEMPLATE METHOD
+# Objetivo: Definir o esqueleto de um algoritmo, adiando a implementação de
+# passos específicos para as subclasses.
 
 class Report(ABC):
     def __init__(self, employee: Employee):
         self._employee = employee
     
-    @abstractmethod
     def generate_report(self):
+        """ Gera um relatório completo seguindo uma estrutura pré-definida. """
+        header = self._generate_header()
+        body = self._generate_body()
+        footer = self._generate_footer()
+        
+        report = f"{header}\n{'-'*40}\n{body}\n{'-'*40}\n{footer}"
+        print(report)
+
+    @abstractmethod
+    def _generate_header(self) -> str:
+        """ Gera o cabeçalho específico do relatório. """
         pass
+
+    @abstractmethod
+    def _generate_body(self) -> str:
+        """ Gera o corpo principal do relatório. """
+        pass
+
+    def _generate_footer(self) -> str:
+        """ Gera um rodapé padrão para todos os relatórios. """
+        return f"Relatório gerado em: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+
 
 class Attendance(Report):
     def __init__(self, employee: Employee):
@@ -49,8 +74,20 @@ class Attendance(Report):
         total_minutes = (total_seconds % 3600) // 60
         print(f"\nTotal worked time: {int(total_hours)}h {int(total_minutes)}min\n")
     
-    def generate_report(self):
-        self.show_records()
+
+    def _generate_header(self) -> str:
+        return f"Relatório de Frequência para {self._employee.name}"
+
+    def _generate_body(self) -> str:
+        if not self._record:
+            return "Nenhum registro de frequência encontrado."
+        
+        body_str = "Registros:\n"
+        for record in self._record:
+            in_time = record['in'].strftime('%Y-%m-%d %H:%M:%S')
+            out_time = record['out'].strftime('%Y-%m-%d %H:%M:%S') if record['out'] else "Ainda trabalhando"
+            body_str += f" - Entrada: {in_time} | Saída: {out_time}\n"
+        return body_str
 
 
 # PADRÃO COMPORTAMENTAL 1: STRATEGY
@@ -94,6 +131,7 @@ class PaymentContext:
         """ O Contexto delega o trabalho de cálculo para o objeto da Estratégia. """
         return self._strategy.calculate(attendance, salary_per_hour)
 
+
 class Compliance(Report):
     def __init__(self, employee: Employee):
         super().__init__(employee)
@@ -118,9 +156,17 @@ class Compliance(Report):
             for i, v in enumerate(self._violations, 1):
                 print(f"{i}) {v['Date']} - {v['Description']} | Severity: {v['Severity']}")
 
-    def generate_report(self):
-        print(f"\nCompliance Report for {self._employee.name}")
-        print(f"Number of Violations: {len(self._violations)}")
-        if self._violations:
-            for v in self._violations:
-                print(f" - {v['Date']} | {v['Description']} (Severity: {v['Severity']})")
+    def _generate_header(self) -> str:
+        return f"Relatório de Compliance para {self._employee.name}"
+
+    def _generate_body(self) -> str:
+        if not self._violations:
+            return "Nenhuma violação registrada."
+        
+        body_str = f"Total de Violações: {len(self._violations)}\n"
+        for v in self._violations:
+            body_str += f" - {v['Date']} | {v['Description']} (Gravidade: {v['Severity']})\n"
+        return body_str
+
+
+

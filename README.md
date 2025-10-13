@@ -44,6 +44,14 @@ O código foi submetido a um processo de refatoração para melhorar sua estrutu
     -   **Problema:** Não havia um mecanismo para que outras partes do sistema fossem notificadas sobre mudanças importantes nos dados de um funcionário (ex: alteração de salário).
     -   **Solução:** A classe `Employee` foi transformada em um "Subject" (Observável). Agora, objetos "Observers" (como o `PayrollNotifier`) podem se registrar para serem notificados automaticamente sempre que o estado do funcionário muda, garantindo baixo acoplamento.
 
+7.  **Template Method:**
+    -   **Problema:** A geração de diferentes tipos de relatórios (Frequência, Compliance) não seguia uma estrutura padronizada, levando a código duplicado ou inconsistente.
+    -   **Solução:** A classe abstrata `Report` implementa um `generate_report` que funciona como um "template". Este método define a estrutura do relatório (cabeçalho, corpo, rodapé) e chama métodos abstratos que as subclasses (`Attendance`, `Compliance`) devem implementar para fornecer o conteúdo específico de cada seção.
+
+8.  **Command:**
+    -   **Problema:** A lógica do menu principal (`main.py`) estava fortemente acoplada aos métodos da classe `Employee`. Cada nova ação exigia uma nova lógica condicional diretamente no menu.
+    -   **Solução:** Ações como "Adicionar Treinamento" e "Adicionar Avaliação" foram encapsuladas em objetos de comando (`AddTrainingCommand`, `AddPerformanceEvaluationCommand`). O menu agora cria e executa esses objetos, desacoplando o "invocador" da ação do "executor" da ação, o que torna o sistema mais flexível e extensível.
+
 ## Justificativa das Funcionalidades Ausentes
 
 -   **Recruitment and Onboarding:** Não implementado por ser um subsistema complexo com um escopo de dados e regras de negócio distinto da gestão de funcionários internos.

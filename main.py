@@ -3,6 +3,7 @@ from services import PaymentContext, HourlyPaymentStrategy, MonthlyPaymentStrate
 from models import Observer, Employee
 from factories import EmployeeFactory
 from hr_system import HRSystem
+from commands import AddTrainingCommand, AddPerformanceEvaluationCommand, CommandInvoker
 
 class PayrollNotifier(Observer):
     """ Um Observer que reage a mudanças no salário de um funcionário. """
@@ -18,7 +19,6 @@ def load_initial_data(hr_system):
     demonstrando o uso da Factory e do Singleton juntos.
     """
     print("Loading initial employee data...")
-    # Dados no formato: (type, name, age, email, dept, position, salary, hire_date)
     initial_employees_data = [
         (1, "Marcela Rocha", 19, "marcela@email.com", "Sistemas Embarcados", "Especialista em Hardware", 50, "2023"),
         (2, "Fernando Emídio", 21, "fernando@email.com", "Redes de Computadores", "Gerente", 60, "2024"),
@@ -27,29 +27,27 @@ def load_initial_data(hr_system):
 
     for data in initial_employees_data:
         employee = EmployeeFactory.create_employee(*data)
-        hr_system.add_employee(employee) # Adiciona através do Singleton
+        hr_system.add_employee(employee)
 
 def main():
     """
     Função principal que executa o loop da aplicação.
     O estado da aplicação é gerenciado pelo Singleton HRSystem.
     """
-    # Ponto de acesso global ao nosso sistema de RH
     hr = HRSystem.get_instance()
     load_initial_data(hr)
 
-    # Criando e anexando o observer para demonstração
     payroll_system = PayrollNotifier()
     marcela = hr.employees_list[0]
     marcela.attach(payroll_system)
 
     print("\n>>> MUDANDO O SALÁRIO DA MARCELA PARA DEMONSTRAR O OBSERVER <<<")
-    marcela.salary_per_hour = 55 # Esta ação vai automaticamente disparar a notificação
+    marcela.salary_per_hour = 55
 
     while True:
         print("\n============== Human Resources Management System ==============\n")
         print("Choose your action: ")
-        print("(1) Employees Data\n(2) Management\n(3) Payment\n(4) Compliance Report\n(5) Exit")
+        print("(1) Employees Data\n(2) Management\n(3) Payment\n(4) Reports\n(5) Exit") # Renomeado para Reports
 
         try:
             chose = int(input("Enter your choice: "))
@@ -87,7 +85,6 @@ def main():
                                 print(f"({i+1}) {emp.name}")
                             mod_index = int(input("Choose employee to modify: ")) - 1
                             if 0 <= mod_index < len(hr.employees_list):
-                                # A lógica de modificação detalhada pode ser adicionada aqui
                                 print(f"Modifying {hr.employees_list[mod_index].name}...")
                             else:
                                 print("Invalid index.")
@@ -105,11 +102,9 @@ def main():
                                 print(f"({i+1}) {emp.name}")
                             ben_index = int(input("Choose employee: ")) - 1
                             if 0 <= ben_index < len(hr.employees_list):
-                                # A lógica de benefícios detalhada pode ser adicionada aqui
                                 print(f"Managing benefits for {hr.employees_list[ben_index].name}...")
                             else:
                                 print("Invalid index.")
-
                 case 2:
                     print("\n--- Management ---")
                     for i, emp in enumerate(hr.employees_list):
@@ -118,17 +113,29 @@ def main():
                     
                     if 0 <= mgmt_index < len(hr.employees_list):
                         employee = hr.employees_list[mgmt_index]
-                        attendance = hr.attendance_list[mgmt_index]
                         
                         print(f"\nManaging {employee.name}:")
-                        print("(1) Time tracking\n(2) Performance\n(3) Training")
+                        print("(1) Add Training\n(2) Add Performance Evaluation\n(3) Show Data")
                         action = int(input("Choose action: "))
+
                         if action == 1:
-                            attendance.show_records()
+                            date = input("Training Date (YYYY-MM-DD): ")
+                            time = input("Time (HH:MM): ")
+                            desc = input("Description: ")
+                            command = AddTrainingCommand(employee, date, time, desc)
+                            invoker = CommandInvoker(command)
+                            invoker.run()
+
                         elif action == 2:
-                            employee.show_performance()
+                            print("Performance Level (1: Good, 2: Average, 3: Bad)")
+                            level = int(input("Choose level: "))
+                            command = AddPerformanceEvaluationCommand(employee, level)
+                            invoker = CommandInvoker(command)
+                            invoker.run()
+
                         elif action == 3:
                             employee.show_training()
+                            employee.show_performance()
                     else:
                         print("Invalid index.")
 
@@ -143,7 +150,6 @@ def main():
                         employee = hr.employees_list[person_index]
                         attendance = hr.attendance_list[person_index]
 
-                        # Usando o padrão Strategy corretamente
                         strategy = HourlyPaymentStrategy()
                         payment_context = PaymentContext(strategy)
                         money = payment_context.calculate_payment(attendance, employee.salary_per_hour)
@@ -151,17 +157,25 @@ def main():
                         print(f"\nTotal payment for {employee.name}: R$ {money:.2f}")
                     else:
                         print("Invalid index.")
-
                 case 4:
-                    print("\n--- Compliance Report ---")
+                    print("\n--- Generate Reports ---")
                     for i, emp in enumerate(hr.employees_list):
                         print(f"({i+1}) {emp.name}")
                     
-                    comp_index = int(input("Choose employee for compliance report: ")) - 1
+                    rep_index = int(input("Choose employee for report: ")) - 1
                     
-                    if 0 <= comp_index < len(hr.employees_list):
-                        compliance = hr.compliance_list[comp_index]
-                        compliance.generate_report()
+                    if 0 <= rep_index < len(hr.employees_list):
+                        print("\n(1) Attendance Report\n(2) Compliance Report")
+                        report_type = int(input("Choose report type: "))
+
+                        if report_type == 1:
+                            attendance_report = hr.attendance_list[rep_index]
+                            attendance_report.generate_report()
+                        elif report_type == 2:
+                            compliance_report = hr.compliance_list[rep_index]
+                            compliance_report.generate_report()
+                        else:
+                            print("Invalid report type.")
                     else:
                         print("Invalid index.")
 
