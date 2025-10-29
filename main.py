@@ -1,7 +1,8 @@
 # main.py
-from services import PaymentContext, HourlyPaymentStrategy, MonthlyPaymentStrategy
-from models import Observer, Employee
-from factories import EmployeeFactory
+
+# O Main agora só precisa saber da Fachada e dos Comandos
+from facade import HRFacade
+from models import Observer, Employee, Department, OrganizationalComponent
 from hr_system import HRSystem
 from commands import AddTrainingCommand, AddPerformanceEvaluationCommand, CommandInvoker
 
@@ -13,54 +14,83 @@ class PayrollNotifier(Observer):
         print(f"Por favor, atualize os registros da folha de pagamento.")
         print(f"----------------------")
 
-def load_initial_data(hr_system):
-    """
-    Função auxiliar para popular o sistema com dados iniciais,
-    demonstrando o uso da Factory e do Singleton juntos.
-    """
-    print("Loading initial employee data...")
-    initial_employees_data = [
-        (1, "Marcela Rocha", 19, "marcela@email.com", "Sistemas Embarcados", "Especialista em Hardware", 50, "2023"),
-        (2, "Fernando Emídio", 21, "fernando@email.com", "Redes de Computadores", "Gerente", 60, "2024"),
-        (3, "David Kelve", 20, "david@email.com", "Recursos Humanos", "Estagiário", 20, "2025")
-    ]
+# ESTA FUNÇÃO NÃO É MAIS NECESSÁRIA, POIS A LÓGICA MUDOU PARA A FACHADA
+# def load_initial_data(hr_system): ...
 
-    for data in initial_employees_data:
-        employee = EmployeeFactory.create_employee(*data)
-        hr_system.add_employee(employee)
+def setup_organization(facade: HRFacade) -> Department:
+    """
+    Função auxiliar para montar a hierarquia da empresa
+    usando o padrão Composite.
+    """
+    # 1. Criamos os departamentos (Composites)
+    engineering_dept = Department("Engenharia")
+    hr_dept = Department("Recursos Humanos")
+    network_team = Department("Time de Redes")
+    hardware_team = Department("Time de Hardware")
+
+    # 2. Contratamos os funcionários usando a Fachada
+    # (Isso já os adiciona ao sistema)
+    marcela = facade.hire_employee(1, "Marcela Rocha", 19, "marcela@email.com", "Sistemas Embarcados", "Especialista em Hardware", 50, "2023")
+    fernando = facade.hire_employee(2, "Fernando Emídio", 21, "fernando@email.com", "Redes de Computadores", "Gerente", 60, "2024")
+    david = facade.hire_employee(3, "David Kelve", 20, "david@email.com", "Recursos Humanos", "Estagiário", 20, "2025")
+    
+    # 3. Adicionamos os 'Leaves' (funcionários) aos seus times
+    hardware_team.add_component(marcela)
+    network_team.add_component(fernando)
+    hr_dept.add_component(david)
+    
+    # 4. Adicionamos os times ao departamento principal
+    engineering_dept.add_component(hardware_team)
+    engineering_dept.add_component(network_team)
+    
+    # 5. Criamos o topo da hierarquia
+    company_root = Department("Empresa X")
+    company_root.add_component(engineering_dept)
+    company_root.add_component(hr_dept)
+    
+    return company_root, marcela
 
 def main():
     """
     Função principal que executa o loop da aplicação.
-    O estado da aplicação é gerenciado pelo Singleton HRSystem.
+    Agora, o 'main' interage principalmente com a 'HRFacade'.
     """
-    hr = HRSystem.get_instance()
-    load_initial_data(hr)
+    # 1. Criamos nossa Fachada.
+    # Internamente, ela já inicializa o Singleton HRSystem.
+    hr_facade = HRFacade()
+    
+    # 2. Montamos a organização e contratamos os funcionários iniciais
+    company, marcela = setup_organization(hr_facade)
 
+    # 3. Criando e anexando o observer para demonstração
     payroll_system = PayrollNotifier()
-    marcela = hr.employees_list[0]
     marcela.attach(payroll_system)
 
     print("\n>>> MUDANDO O SALÁRIO DA MARCELA PARA DEMONSTRAR O OBSERVER <<<")
-    marcela.salary_per_hour = 55
+    marcela.salary_per_hour = 55 # Esta ação vai disparar a notificação
 
     while True:
-        print("\n============== Human Resources Management System ==============\n")
+        print("\n============== Human Resources Management System (Facade) ==============\n")
         print("Choose your action: ")
-        print("(1) Employees Data\n(2) Management\n(3) Payment\n(4) Reports\n(5) Exit") # Renomeado para Reports
+        print("(1) Employees Data\n(2) Management\n(3) Payment\n(4) Reports\n(5) Show Company Hierarchy\n(6) Exit")
 
         try:
             chose = int(input("Enter your choice: "))
+            
+            # Pegamos a lista de funcionários da fachada
+            employees = hr_facade.get_employee_list()
 
             match chose:
                 case 1:
-                    print("\n(1) Employees documentation\n(2) Add a new employee\n(3) Modify employee data\n(4) Remove an Employee\n(5) Benefits management")
+                    print("\n(1) Employees documentation\n(2) Add a new employee\n(3) Remove an Employee")
                     chose_1 = int(input("Choose action: "))
                     
                     match chose_1:
                         case 1:
                             print("\n--- All Employees ---")
-                            for employee in hr.employees_list:
+                            if not employees:
+                                print("Nenhum funcionário cadastrado.")
+                            for employee in employees:
                                 employee.display_info()
                                 print(f"Role: {employee.get_role()}\n")
                         
@@ -75,49 +105,34 @@ def main():
                             hire_date = input("Hire Date (YYYY): ")
                             emp_type = int(input("Employee Type (1: Regular, 2: Manager, 3: Intern): "))
 
-                            new_employee = EmployeeFactory.create_employee(emp_type, name, age, email, department, work_position, salary, hire_date)
-                            hr.add_employee(new_employee)
-                            print("Employee added successfully!")
+                            # O 'main' só chama a fachada, não sabe da Factory
+                            hr_facade.hire_employee(emp_type, name, age, email, department, work_position, salary, hire_date)
+                            print("!! ATENÇÃO: Hierarquia da empresa precisa ser atualizada manualmente (reinicie o app) !!")
 
                         case 3:
-                            print("\n--- Modify Employee ---")
-                            for i, emp in enumerate(hr.employees_list):
-                                print(f"({i+1}) {emp.name}")
-                            mod_index = int(input("Choose employee to modify: ")) - 1
-                            if 0 <= mod_index < len(hr.employees_list):
-                                print(f"Modifying {hr.employees_list[mod_index].name}...")
-                            else:
-                                print("Invalid index.")
-                        
-                        case 4:
                             print("\n--- Remove Employee ---")
-                            for i, emp in enumerate(hr.employees_list):
+                            for i, emp in enumerate(employees):
                                 print(f"({i+1}) {emp.name}")
                             remove_index = int(input("Enter the number of the employee to remove: ")) - 1
-                            hr.remove_employee(remove_index)
+                            
+                            # O 'main' só chama a fachada
+                            hr_facade.remove_employee(remove_index)
+                            print("!! ATENÇÃO: Hierarquia da empresa precisa ser atualizada manualmente (reinicie o app) !!")
 
-                        case 5:
-                            print("\n--- Manage Benefits ---")
-                            for i, emp in enumerate(hr.employees_list):
-                                print(f"({i+1}) {emp.name}")
-                            ben_index = int(input("Choose employee: ")) - 1
-                            if 0 <= ben_index < len(hr.employees_list):
-                                print(f"Managing benefits for {hr.employees_list[ben_index].name}...")
-                            else:
-                                print("Invalid index.")
                 case 2:
                     print("\n--- Management ---")
-                    for i, emp in enumerate(hr.employees_list):
+                    for i, emp in enumerate(employees):
                         print(f"({i+1}) {emp.name}")
                     mgmt_index = int(input("Choose employee to manage: ")) - 1
                     
-                    if 0 <= mgmt_index < len(hr.employees_list):
-                        employee = hr.employees_list[mgmt_index]
+                    if 0 <= mgmt_index < len(employees):
+                        employee = employees[mgmt_index]
                         
                         print(f"\nManaging {employee.name}:")
                         print("(1) Add Training\n(2) Add Performance Evaluation\n(3) Show Data")
                         action = int(input("Choose action: "))
-
+                        
+                        # O Padrão Command continua sendo usado para estas ações
                         if action == 1:
                             date = input("Training Date (YYYY-MM-DD): ")
                             time = input("Time (HH:MM): ")
@@ -141,45 +156,45 @@ def main():
 
                 case 3:
                     print("\n--- Calculate Payment ---")
-                    for i, emp in enumerate(hr.employees_list):
+                    for i, emp in enumerate(employees):
                         print(f"({i+1}) {emp.name}")
                     
                     person_index = int(input("Choose employee to calculate salary: ")) - 1
                     
-                    if 0 <= person_index < len(hr.employees_list):
-                        employee = hr.employees_list[person_index]
-                        attendance = hr.attendance_list[person_index]
+                    # O 'main' só chama a fachada, não sabe de Strategy ou Decorator
+                    try:
+                        hr_facade.calculate_payment(person_index)
+                    except Exception as e:
+                        print(f"Erro ao calcular pagamento: {e}")
 
-                        strategy = HourlyPaymentStrategy()
-                        payment_context = PaymentContext(strategy)
-                        money = payment_context.calculate_payment(attendance, employee.salary_per_hour)
-                        
-                        print(f"\nTotal payment for {employee.name}: R$ {money:.2f}")
-                    else:
-                        print("Invalid index.")
                 case 4:
                     print("\n--- Generate Reports ---")
-                    for i, emp in enumerate(hr.employees_list):
+                    for i, emp in enumerate(employees):
                         print(f"({i+1}) {emp.name}")
                     
                     rep_index = int(input("Choose employee for report: ")) - 1
                     
-                    if 0 <= rep_index < len(hr.employees_list):
-                        print("\n(1) Attendance Report\n(2) Compliance Report")
-                        report_type = int(input("Choose report type: "))
+                    print("\n(1) Attendance Report\n(2) Compliance Report")
+                    report_type = int(input("Choose report type: "))
 
+                    try:
                         if report_type == 1:
-                            attendance_report = hr.attendance_list[rep_index]
-                            attendance_report.generate_report()
+                            # O 'main' só chama a fachada
+                            hr_facade.generate_attendance_report(rep_index)
                         elif report_type == 2:
-                            compliance_report = hr.compliance_list[rep_index]
-                            compliance_report.generate_report()
+                            # O 'main' só chama a fachada
+                            hr_facade.generate_compliance_report(rep_index)
                         else:
                             print("Invalid report type.")
-                    else:
-                        print("Invalid index.")
+                    except Exception as e:
+                        print(f"Erro ao gerar relatório: {e}")
 
                 case 5:
+                    print("\n--- Company Organizational Hierarchy ---")
+                    # Padrão Composite
+                    company.display_hierarchy()
+
+                case 6:
                     print("Exiting system. Goodbye!")
                     return
 

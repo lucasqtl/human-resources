@@ -1,10 +1,7 @@
 # models.py
 from abc import ABC, abstractmethod
 
-# PADRÃO COMPORTAMENTAL 2: OBSERVER
-# Objetivo: Definir uma dependência de um para muitos entre objetos, de modo que, quando um objeto (o "Subject") 
-# muda de estado, todos os seus dependentes (os "Observers") são notificados e atualizados automaticamente.
-
+# Padrão Observer - Classes Base
 class Observer(ABC):
     @abstractmethod
     def update(self, subject):
@@ -25,6 +22,23 @@ class Subject(ABC):
         for observer in self._observers:
             observer.update(self)
 
+# PADRÃO ESTRUTURAL 1: COMPOSITE (Interface)
+# Objetivo: Definir uma interface comum para objetos 'folha' (Employee)
+# e objetos 'compostos' (Department), permitindo que sejam tratados uniformemente.
+class OrganizationalComponent(ABC):
+    
+    @abstractmethod
+    def display_hierarchy(self, indent_level: int = 0):
+        """ Exibe a hierarquia organizacional. """
+        pass
+    
+    @abstractmethod
+    def get_role(self) -> str:
+        """ Retorna a função/cargo do componente. """
+        pass
+
+
+# CORREÇÃO: A classe base 'Person' foi movida para ANTES da classe 'Employee'.
 class Person(ABC):
     """
     Classe Abstrata que serve como um modelo base para qualquer 'pessoa' no sistema.
@@ -75,12 +89,13 @@ class Person(ABC):
     def display_info(self):
         pass
 
-class Employee(Person, Subject):
+# Employee agora é um 'Subject' (Observer) e um 'Leaf' (Composite)
+class Employee(Person, Subject, OrganizationalComponent):
     number_of_employees = 0
     
     def __init__(self, name, age, email, department, work_position, salary_per_hour, hire_date):
         Person.__init__(self, name, age, email)
-        Subject.__init__(self)
+        Subject.__init__(self) # Inicializa a lógica do Subject
         self._department = department
         self._work_position = work_position
         self._salary_per_hour = salary_per_hour
@@ -118,7 +133,7 @@ class Employee(Person, Subject):
     def salary_per_hour(self, value):
         if isinstance(value, (int, float)) and value > 0:
             self._salary_per_hour = value
-            self.notify()
+            self.notify() # Notifica observers sempre que o salário muda.
         else:
             raise ValueError("Salary must be a positive number")
     
@@ -145,6 +160,11 @@ class Employee(Person, Subject):
     
     def __str__(self):
         return self._name
+
+    # Implementação do Padrão Composite (Leaf)
+    def display_hierarchy(self, indent_level: int = 0):
+        indent = "  " * indent_level
+        print(f"{indent}- {self.name} ({self.get_role()})")
 
     def add_leave_request(self, start_date, end_date, reason):
         leave = {"f_Date": start_date, "s_Date": end_date, "Description": reason}
@@ -249,3 +269,31 @@ class Intern(Employee):
     def display_info(self):
         super().display_info()
         print(f"Mentor: {self._mentor.name if self._mentor else 'Not assigned'}")
+
+
+# PADRÃO ESTRUTURAL 1: COMPOSITE (Classe Composite)
+# Esta classe pode conter outros componentes (Leaves ou outros Composites)
+class Department(OrganizationalComponent):
+    """
+    Representa um Departamento, que é um 'Composite'.
+    Ele pode conter 'Leaves' (Employees) ou outros 'Composites' (Sub-departamentos).
+    """
+    def __init__(self, name: str):
+        self._name = name
+        self._children: list[OrganizationalComponent] = []
+
+    def add_component(self, component: OrganizationalComponent):
+        self._children.append(component)
+
+    def remove_component(self, component: OrganizationalComponent):
+        self._children.remove(component)
+
+    def get_role(self) -> str:
+        return f"Department - {self._name}"
+
+    def display_hierarchy(self, indent_level: int = 0):
+        indent = "  " * indent_level
+        print(f"{indent}+ {self._name} (Departamento)")
+        
+        for child in self._children:
+            child.display_hierarchy(indent_level + 1)

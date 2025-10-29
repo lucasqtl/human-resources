@@ -1,5 +1,4 @@
 # services.py
-
 from datetime import datetime
 from abc import ABC, abstractmethod
 from models import Employee
@@ -7,17 +6,18 @@ from models import Employee
 # PADRÃO COMPORTAMENTAL 3: TEMPLATE METHOD
 # Objetivo: Definir o esqueleto de um algoritmo, adiando a implementação de
 # passos específicos para as subclasses.
-
 class Report(ABC):
     def __init__(self, employee: Employee):
         self._employee = employee
     
+    # Este é o Template Method. Ele define a estrutura do algoritmo.
     def generate_report(self):
         """ Gera um relatório completo seguindo uma estrutura pré-definida. """
         header = self._generate_header()
         body = self._generate_body()
         footer = self._generate_footer()
         
+        # Estrutura do relatório
         report = f"{header}\n{'-'*40}\n{body}\n{'-'*40}\n{footer}"
         print(report)
 
@@ -74,7 +74,7 @@ class Attendance(Report):
         total_minutes = (total_seconds % 3600) // 60
         print(f"\nTotal worked time: {int(total_hours)}h {int(total_minutes)}min\n")
     
-
+    # Implementação dos passos do Template Method
     def _generate_header(self) -> str:
         return f"Relatório de Frequência para {self._employee.name}"
 
@@ -92,7 +92,6 @@ class Attendance(Report):
 
 # PADRÃO COMPORTAMENTAL 1: STRATEGY
 # Objetivo: Permitir que o algoritmo de cálculo de pagamento seja selecionado em tempo de execução.
-
 class PaymentStrategy(ABC):
     """ A Interface da Estratégia declara operações comuns a todos os algoritmos suportados. """
     @abstractmethod
@@ -104,16 +103,20 @@ class HourlyPaymentStrategy(PaymentStrategy):
     def calculate(self, attendance: Attendance, salary_per_hour: float) -> float:
         total_seconds = 0
         for record in attendance._record:
+            # CORREÇÃO AQUI
             if record["in"] and record["out"]:
+                # CORREÇÃO AQUI
                 worked = record["out"] - record["in"]
                 total_seconds += worked.total_seconds()
         total_hours = total_seconds / 3600
+        print(f"  -> Salário Base (Horista): R$ {total_hours * salary_per_hour:.2f}")
         return total_hours * salary_per_hour
 
 class MonthlyPaymentStrategy(PaymentStrategy):
     """ Estratégia Concreta: Calcula um pagamento fixo mensal (ex: 160 horas de trabalho). """
     def calculate(self, attendance: Attendance, salary_per_hour: float) -> float:
         FIXED_HOURS_PER_MONTH = 160
+        print(f"  -> Salário Base (Mensalista): R$ {FIXED_HOURS_PER_MONTH * salary_per_hour:.2f}")
         return FIXED_HOURS_PER_MONTH * salary_per_hour
 
 class PaymentContext:
@@ -132,11 +135,57 @@ class PaymentContext:
         return self._strategy.calculate(attendance, salary_per_hour)
 
 
+# PADRÃO ESTRUTURAL 2: DECORATOR
+# Objetivo: Adicionar responsabilidades a um objeto dinamicamente,
+# sem alterar a classe do objeto original.
+
+class BasePaymentDecorator(PaymentStrategy):
+    """
+    O Decorator base segue a mesma interface do componente que ele
+    decora. Ele armazena uma referência ao objeto "embrulhado".
+    """
+    _wrapped_strategy: PaymentStrategy = None
+
+    def __init__(self, strategy: PaymentStrategy):
+        self._wrapped_strategy = strategy
+
+    def calculate(self, attendance: Attendance, salary_per_hour: float) -> float:
+        # O decorator base simplesmente delega o trabalho ao objeto embrulhado
+        return self._wrapped_strategy.calculate(attendance, salary_per_hour)
+
+class ManagerBonusDecorator(BasePaymentDecorator):
+    """
+    Este Decorator Concreto adiciona um bônus de 20% para gerentes.
+    """
+    def calculate(self, attendance: Attendance, salary_per_hour: float) -> float:
+        # 1. Pega o salário base (chamando o método do objeto embrulhado)
+        base_pay = self._wrapped_strategy.calculate(attendance, salary_per_hour)
+        
+        # 2. Adiciona a nova responsabilidade (o bônus)
+        bonus = base_pay * 0.20
+        print(f"  -> Bônus (Manager 20%): +R$ {bonus:.2f}")
+        return base_pay + bonus
+
+class TaxDeductionDecorator(BasePaymentDecorator):
+    """
+    Este Decorator Concreto aplica um desconto de 15% de imposto.
+    """
+    def calculate(self, attendance: Attendance, salary_per_hour: float) -> float:
+        # 1. Pega o salário (que pode já incluir o bônus)
+        gross_pay = self._wrapped_strategy.calculate(attendance, salary_per_hour)
+        
+        # 2. Adiciona a nova responsabilidade (o desconto)
+        tax = gross_pay * 0.15
+        print(f"  -> Imposto (15%): -R$ {tax:.2f}")
+        return gross_pay - tax
+
+
 class Compliance(Report):
     def __init__(self, employee: Employee):
         super().__init__(employee)
         self._violations = []
     
+    # ... (métodos add_violation, remove_violation, show_violations permanecem os mesmos) ...
     def add_violation(self, date_str, description, severity):
         violation = {"Date": date_str, "Description": description, "Severity": severity}
         self._violations.append(violation)
@@ -156,6 +205,7 @@ class Compliance(Report):
             for i, v in enumerate(self._violations, 1):
                 print(f"{i}) {v['Date']} - {v['Description']} | Severity: {v['Severity']}")
 
+    # Implementação dos passos do Template Method
     def _generate_header(self) -> str:
         return f"Relatório de Compliance para {self._employee.name}"
 
@@ -167,6 +217,3 @@ class Compliance(Report):
         for v in self._violations:
             body_str += f" - {v['Date']} | {v['Description']} (Gravidade: {v['Severity']})\n"
         return body_str
-
-
-
