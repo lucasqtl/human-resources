@@ -14,36 +14,28 @@ class PayrollNotifier(Observer):
         print(f"Por favor, atualize os registros da folha de pagamento.")
         print(f"----------------------")
 
-# ESTA FUNÇÃO NÃO É MAIS NECESSÁRIA, POIS A LÓGICA MUDOU PARA A FACHADA
-# def load_initial_data(hr_system): ...
 
 def setup_organization(facade: HRFacade) -> Department:
     """
     Função auxiliar para montar a hierarquia da empresa
     usando o padrão Composite.
     """
-    # 1. Criamos os departamentos (Composites)
     engineering_dept = Department("Engenharia")
     hr_dept = Department("Recursos Humanos")
     network_team = Department("Time de Redes")
     hardware_team = Department("Time de Hardware")
 
-    # 2. Contratamos os funcionários usando a Fachada
-    # (Isso já os adiciona ao sistema)
     marcela = facade.hire_employee(1, "Marcela Rocha", 19, "marcela@email.com", "Sistemas Embarcados", "Especialista em Hardware", 50, "2023")
     fernando = facade.hire_employee(2, "Fernando Emídio", 21, "fernando@email.com", "Redes de Computadores", "Gerente", 60, "2024")
     david = facade.hire_employee(3, "David Kelve", 20, "david@email.com", "Recursos Humanos", "Estagiário", 20, "2025")
     
-    # 3. Adicionamos os 'Leaves' (funcionários) aos seus times
     hardware_team.add_component(marcela)
     network_team.add_component(fernando)
     hr_dept.add_component(david)
     
-    # 4. Adicionamos os times ao departamento principal
     engineering_dept.add_component(hardware_team)
     engineering_dept.add_component(network_team)
     
-    # 5. Criamos o topo da hierarquia
     company_root = Department("Empresa X")
     company_root.add_component(engineering_dept)
     company_root.add_component(hr_dept)
@@ -55,19 +47,16 @@ def main():
     Função principal que executa o loop da aplicação.
     Agora, o 'main' interage principalmente com a 'HRFacade'.
     """
-    # 1. Criamos nossa Fachada.
-    # Internamente, ela já inicializa o Singleton HRSystem.
+
     hr_facade = HRFacade()
     
-    # 2. Montamos a organização e contratamos os funcionários iniciais
     company, marcela = setup_organization(hr_facade)
 
-    # 3. Criando e anexando o observer para demonstração
     payroll_system = PayrollNotifier()
     marcela.attach(payroll_system)
 
     print("\n>>> MUDANDO O SALÁRIO DA MARCELA PARA DEMONSTRAR O OBSERVER <<<")
-    marcela.salary_per_hour = 55 # Esta ação vai disparar a notificação
+    marcela.salary_per_hour = 55 
 
     while True:
         print("\n============== Human Resources Management System (Facade) ==============\n")
@@ -77,7 +66,6 @@ def main():
         try:
             chose = int(input("Enter your choice: "))
             
-            # Pegamos a lista de funcionários da fachada
             employees = hr_facade.get_employee_list()
 
             match chose:
@@ -105,7 +93,6 @@ def main():
                             hire_date = input("Hire Date (YYYY): ")
                             emp_type = int(input("Employee Type (1: Regular, 2: Manager, 3: Intern): "))
 
-                            # O 'main' só chama a fachada, não sabe da Factory
                             hr_facade.hire_employee(emp_type, name, age, email, department, work_position, salary, hire_date)
                             print("!! ATENÇÃO: Hierarquia da empresa precisa ser atualizada manualmente (reinicie o app) !!")
 
@@ -115,7 +102,6 @@ def main():
                                 print(f"({i+1}) {emp.name}")
                             remove_index = int(input("Enter the number of the employee to remove: ")) - 1
                             
-                            # O 'main' só chama a fachada
                             hr_facade.remove_employee(remove_index)
                             print("!! ATENÇÃO: Hierarquia da empresa precisa ser atualizada manualmente (reinicie o app) !!")
 
@@ -132,7 +118,6 @@ def main():
                         print("(1) Add Training\n(2) Add Performance Evaluation\n(3) Show Data")
                         action = int(input("Choose action: "))
                         
-                        # O Padrão Command continua sendo usado para estas ações
                         if action == 1:
                             date = input("Training Date (YYYY-MM-DD): ")
                             time = input("Time (HH:MM): ")
@@ -161,7 +146,6 @@ def main():
                     
                     person_index = int(input("Choose employee to calculate salary: ")) - 1
                     
-                    # O 'main' só chama a fachada, não sabe de Strategy ou Decorator
                     try:
                         hr_facade.calculate_payment(person_index)
                     except Exception as e:
@@ -179,10 +163,8 @@ def main():
 
                     try:
                         if report_type == 1:
-                            # O 'main' só chama a fachada
                             hr_facade.generate_attendance_report(rep_index)
                         elif report_type == 2:
-                            # O 'main' só chama a fachada
                             hr_facade.generate_compliance_report(rep_index)
                         else:
                             print("Invalid report type.")
@@ -191,7 +173,6 @@ def main():
 
                 case 5:
                     print("\n--- Company Organizational Hierarchy ---")
-                    # Padrão Composite
                     company.display_hierarchy()
 
                 case 6:

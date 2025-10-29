@@ -18,7 +18,6 @@ class HRFacade:
     (Singleton, Factory, Strategy, Decorator).
     """
     def __init__(self):
-        # A Fachada obtém acesso ao Singleton para gerenciar o estado
         self._hr_system = HRSystem.get_instance()
 
     def get_employee_list(self) -> list[Employee]:
@@ -32,12 +31,10 @@ class HRFacade:
         """
         print(f"\n[Facade] Contratando {name}...")
         
-        # 1. Usa a Factory para criar o objeto complexo
         new_employee = EmployeeFactory.create_employee(
             emp_type, name, age, email, dept, pos, salary, hire_date
         )
         
-        # 2. Usa o Singleton para adicionar ao sistema
         self._hr_system.add_employee(new_employee)
         
         print(f"[Facade] {name} contratado e adicionado ao sistema.")
@@ -60,17 +57,13 @@ class HRFacade:
         
         print(f"\n[Facade] Calculando pagamento para: {employee.name}...")
 
-        # 1. Começa com a estratégia base (Padrão Strategy)
         payment_strategy: PaymentStrategy = HourlyPaymentStrategy()
         
-        # 2. "Decora" a estratégia base (Padrão Decorator)
         if isinstance(employee, Manager):
             payment_strategy = ManagerBonusDecorator(payment_strategy)
         
-        # 3. "Decora" novamente com o imposto
         payment_strategy = TaxDeductionDecorator(payment_strategy)
 
-        # 4. O Contexto usa a estratégia final
         payment_context = PaymentContext(payment_strategy)
         money = payment_context.calculate_payment(attendance, employee.salary_per_hour)
         

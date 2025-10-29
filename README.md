@@ -52,6 +52,20 @@ O código foi submetido a um processo de refatoração para melhorar sua estrutu
     -   **Problema:** A lógica do menu principal (`main.py`) estava fortemente acoplada aos métodos da classe `Employee`. Cada nova ação exigia uma nova lógica condicional diretamente no menu.
     -   **Solução:** Ações como "Adicionar Treinamento" e "Adicionar Avaliação" foram encapsuladas em objetos de comando (`AddTrainingCommand`, `AddPerformanceEvaluationCommand`). O menu agora cria e executa esses objetos, desacoplando o "invocador" da ação do "executor" da ação, o que torna o sistema mais flexível e extensível.
 
+### Padrões Estruturais
+
+9.  **Composite:**
+    -   **Problema:** Precisávamos representar a hierarquia organizacional (empresa -> departamentos -> funcionários) e tratar todos os níveis da hierarquia de forma uniforme.
+    -   **Solução:** Foi criada a interface `OrganizationalComponent` (`models.py`) implementada tanto pela classe "folha" (`Employee`) quanto pela classe "container" (`Department`). Isso nos permite chamar o método `display_hierarchy()` no objeto raiz da empresa, e o comando se propaga recursivamente por toda a árvore, exibindo a estrutura completa.
+
+10.  **Decorator:**
+    -   **Problema:** A lógica de cálculo de pagamento (Padrão Strategy) precisava ser estendida para incluir adições (como bônus) e deduções (como impostos) sem criar uma subclasse para cada combinação possível.
+    -   **Solução:** O `PaymentStrategy` (`services.py`) foi usado como a interface do componente. As classes `ManagerBonusDecorator` e `TaxDeductionDecorator` foram criadas como "embrulhadores" que também seguem a interface `PaymentStrategy`. Isso permite "empilhar" responsabilidades dinamicamente (ex: `TaxDeduction(ManagerBonus(HourlyPayment))`) antes de passar o objeto final para o `PaymentContext`.
+
+11.  **Facade:**
+    -   **Problema:** O código cliente (`main.py`) precisava conhecer e interagir com múltiplos subsistemas (Factory, Singleton, Strategy, Decorator) para realizar tarefas comuns, como contratar um funcionário ou calcular um pagamento.
+    -   **Solução:** Foi criada a classe `HRFacade` (`facade.py`) que fornece uma interface única e simplificada. O `main.py` agora só conversa com a fachada, chamando métodos como `hire_employee()` ou `calculate_payment()`. A fachada, por sua vez, coordena internamente todos os subsistemas complexos necessários para executar a tarefa.
+
 ## Justificativa das Funcionalidades Ausentes
 
 -   **Recruitment and Onboarding:** Não implementado por ser um subsistema complexo com um escopo de dados e regras de negócio distinto da gestão de funcionários internos.
