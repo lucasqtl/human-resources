@@ -38,7 +38,6 @@ class OrganizationalComponent(ABC):
         pass
 
 
-# CORREÇÃO: A classe base 'Person' foi movida para ANTES da classe 'Employee'.
 class Person(ABC):
     """
     Classe Abstrata que serve como um modelo base para qualquer 'pessoa' no sistema.
@@ -89,13 +88,12 @@ class Person(ABC):
     def display_info(self):
         pass
 
-# Employee agora é um 'Subject' (Observer) e um 'Leaf' (Composite)
 class Employee(Person, Subject, OrganizationalComponent):
     number_of_employees = 0
     
     def __init__(self, name, age, email, department, work_position, salary_per_hour, hire_date):
         Person.__init__(self, name, age, email)
-        Subject.__init__(self) # Inicializa a lógica do Subject
+        Subject.__init__(self) 
         self._department = department
         self._work_position = work_position
         self._salary_per_hour = salary_per_hour

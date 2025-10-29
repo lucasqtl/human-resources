@@ -1,6 +1,5 @@
 # main.py
 
-# O Main agora só precisa saber da Fachada e dos Comandos
 from facade import HRFacade
 from models import Observer, Employee, Department, OrganizationalComponent
 from hr_system import HRSystem

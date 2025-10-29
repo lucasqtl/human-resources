@@ -100,9 +100,7 @@ class HourlyPaymentStrategy(PaymentStrategy):
     def calculate(self, attendance: Attendance, salary_per_hour: float) -> float:
         total_seconds = 0
         for record in attendance._record:
-            # CORREÇÃO AQUI
             if record["in"] and record["out"]:
-                # CORREÇÃO AQUI
                 worked = record["out"] - record["in"]
                 total_seconds += worked.total_seconds()
         total_hours = total_seconds / 3600
