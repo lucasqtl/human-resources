@@ -1,5 +1,11 @@
 # models.py
 from abc import ABC, abstractmethod
+from exceptions import (
+    InvalidNameException, InvalidAgeException, InvalidEmailException,
+    InvalidDepartmentException, InvalidSalaryException, InvalidIndexException,
+    InvalidPerformanceLevelException, BenefitAlreadyExistsException,
+    BenefitNotFoundException
+)
 
 # Padrão Observer - Classes Base
 class Observer(ABC):
@@ -53,10 +59,16 @@ class Person(ABC):
     
     @name.setter
     def name(self, value):
-        if isinstance(value, str) and len(value) > 0:
-            self._name = value
-        else:
-            raise ValueError("Name must be a non-empty string")
+        try:
+            if not isinstance(value, str):
+                raise TypeError(f"Nome deve ser uma string, recebido: {type(value).__name__}")
+            if len(value.strip()) == 0:
+                raise InvalidNameException("Nome não pode ser vazio ou conter apenas espaços em branco")
+            if len(value) > 100:
+                raise InvalidNameException("Nome não pode ter mais de 100 caracteres")
+            self._name = value.strip()
+        except (TypeError, InvalidNameException) as e:
+            raise InvalidNameException(f"Erro ao definir nome: {str(e)}")
     
     @property
     def age(self):
@@ -64,10 +76,20 @@ class Person(ABC):
     
     @age.setter
     def age(self, value):
-        if isinstance(value, int) and value > 0:
+        try:
+            if not isinstance(value, int):
+                if isinstance(value, float):
+                    raise TypeError("Idade deve ser um número inteiro, não um número decimal")
+                raise TypeError(f"Idade deve ser um número inteiro, recebido: {type(value).__name__}")
+            if value <= 0:
+                raise InvalidAgeException(f"Idade deve ser um número positivo, recebido: {value}")
+            if value < 16:
+                raise InvalidAgeException(f"Idade mínima permitida é 16 anos, recebido: {value}")
+            if value > 100:
+                raise InvalidAgeException(f"Idade máxima permitida é 100 anos, recebido: {value}")
             self._age = value
-        else:
-            raise ValueError("Age must be a positive number")
+        except (TypeError, InvalidAgeException) as e:
+            raise InvalidAgeException(f"Erro ao definir idade: {str(e)}")
     
     @property
     def email(self):
@@ -75,10 +97,22 @@ class Person(ABC):
     
     @email.setter
     def email(self, value):
-        if "@" in value:
-            self._email = value
-        else:
-            raise ValueError("Email must contain @")
+        try:
+            if not isinstance(value, str):
+                raise TypeError(f"Email deve ser uma string, recebido: {type(value).__name__}")
+            if len(value.strip()) == 0:
+                raise InvalidEmailException("Email não pode ser vazio")
+            if "@" not in value:
+                raise InvalidEmailException("Email deve conter o símbolo '@'")
+            if value.count("@") > 1:
+                raise InvalidEmailException("Email deve conter apenas um símbolo '@'")
+            if "." not in value.split("@")[1] if "@" in value else "":
+                raise InvalidEmailException("Email deve ter um domínio válido (ex: exemplo@dominio.com)")
+            if len(value) > 255:
+                raise InvalidEmailException("Email não pode ter mais de 255 caracteres")
+            self._email = value.strip().lower()
+        except (TypeError, InvalidEmailException) as e:
+            raise InvalidEmailException(f"Erro ao definir email: {str(e)}")
     
     @abstractmethod
     def get_role(self):
@@ -110,10 +144,16 @@ class Employee(Person, Subject, OrganizationalComponent):
     
     @department.setter
     def department(self, value):
-        if isinstance(value, str) and len(value) > 0:
-            self._department = value
-        else:
-            raise ValueError("Department must be a non-empty string")
+        try:
+            if not isinstance(value, str):
+                raise TypeError(f"Departamento deve ser uma string, recebido: {type(value).__name__}")
+            if len(value.strip()) == 0:
+                raise InvalidDepartmentException("Departamento não pode ser vazio ou conter apenas espaços")
+            if len(value) > 100:
+                raise InvalidDepartmentException("Departamento não pode ter mais de 100 caracteres")
+            self._department = value.strip()
+        except (TypeError, InvalidDepartmentException) as e:
+            raise InvalidDepartmentException(f"Erro ao definir departamento: {str(e)}")
     
     @property
     def work_position(self):
@@ -129,11 +169,19 @@ class Employee(Person, Subject, OrganizationalComponent):
     
     @salary_per_hour.setter
     def salary_per_hour(self, value):
-        if isinstance(value, (int, float)) and value > 0:
-            self._salary_per_hour = value
-            self.notify() # Notifica observers sempre que o salário muda.
-        else:
-            raise ValueError("Salary must be a positive number")
+        try:
+            if not isinstance(value, (int, float)):
+                raise TypeError(f"Salário deve ser um número, recebido: {type(value).__name__}")
+            if value <= 0:
+                raise InvalidSalaryException(f"Salário deve ser um número positivo, recebido: {value}")
+            if value < 1.0:
+                raise InvalidSalaryException(f"Salário por hora deve ser no mínimo R$ 1,00, recebido: R$ {value:.2f}")
+            if value > 10000.0:
+                raise InvalidSalaryException(f"Salário por hora não pode exceder R$ 10.000,00, recebido: R$ {value:.2f}")
+            self._salary_per_hour = float(value)
+            self.notify() 
+        except (TypeError, InvalidSalaryException) as e:
+            raise InvalidSalaryException(f"Erro ao definir salário: {str(e)}")
     
     @property
     def hire_date(self):
@@ -169,10 +217,18 @@ class Employee(Person, Subject, OrganizationalComponent):
         self._requests.append(leave)
     
     def remove_leave_request(self, index):
-        if 0 <= index < len(self._requests):
+        try:
+            if not isinstance(index, int):
+                raise TypeError(f"Índice deve ser um número inteiro, recebido: {type(index).__name__}")
+            if index < 0:
+                raise InvalidIndexException(f"Índice não pode ser negativo, recebido: {index}")
+            if index >= len(self._requests):
+                raise InvalidIndexException(f"Índice {index} está fora do range. Total de solicitações: {len(self._requests)}")
+            if len(self._requests) == 0:
+                raise InvalidIndexException("Não há solicitações de afastamento para remover")
             self._requests.pop(index)
-        else:
-            print("Invalid index")
+        except (TypeError, InvalidIndexException) as e:
+            raise InvalidIndexException(f"Erro ao remover solicitação de afastamento: {str(e)}")
     
     def show_leave_requests(self):
         print(f"Leave requests for {self._name}")
@@ -187,10 +243,18 @@ class Employee(Person, Subject, OrganizationalComponent):
         self._training.append(session)
     
     def remove_training(self, index):
-        if 0 <= index < len(self._training):
+        try:
+            if not isinstance(index, int):
+                raise TypeError(f"Índice deve ser um número inteiro, recebido: {type(index).__name__}")
+            if index < 0:
+                raise InvalidIndexException(f"Índice não pode ser negativo, recebido: {index}")
+            if index >= len(self._training):
+                raise InvalidIndexException(f"Índice {index} está fora do range. Total de treinamentos: {len(self._training)}")
+            if len(self._training) == 0:
+                raise InvalidIndexException("Não há treinamentos para remover")
             self._training.pop(index)
-        else:
-            print("Invalid Index")
+        except (TypeError, InvalidIndexException) as e:
+            raise InvalidIndexException(f"Erro ao remover treinamento: {str(e)}")
     
     def show_training(self):
         print(f"Training sessions for {self._name}")
@@ -201,17 +265,31 @@ class Employee(Person, Subject, OrganizationalComponent):
                 print(f"{i}) {session['Date']} at {session['Time']} - {session['Description']}")
     
     def add_performance_evaluation(self, level):
-        performance_levels = {1: "Good", 2: "Average", 3: "Bad"}
-        if level in performance_levels:
+        try:
+            performance_levels = {1: "Good", 2: "Average", 3: "Bad"}
+            if not isinstance(level, int):
+                raise TypeError(f"Nível de performance deve ser um número inteiro, recebido: {type(level).__name__}")
+            if level not in performance_levels:
+                raise InvalidPerformanceLevelException(
+                    f"Nível de performance deve ser 1 (Good), 2 (Average) ou 3 (Bad), recebido: {level}"
+                )
             self._performance.append(level)
-        else:
-            print("Invalid input")
+        except (TypeError, InvalidPerformanceLevelException) as e:
+            raise InvalidPerformanceLevelException(f"Erro ao adicionar avaliação de performance: {str(e)}")
     
     def remove_performance_evaluation(self, index):
-        if 0 <= index < len(self._performance):
+        try:
+            if not isinstance(index, int):
+                raise TypeError(f"Índice deve ser um número inteiro, recebido: {type(index).__name__}")
+            if index < 0:
+                raise InvalidIndexException(f"Índice não pode ser negativo, recebido: {index}")
+            if index >= len(self._performance):
+                raise InvalidIndexException(f"Índice {index} está fora do range. Total de avaliações: {len(self._performance)}")
+            if len(self._performance) == 0:
+                raise InvalidIndexException("Não há avaliações de performance para remover")
             self._performance.pop(index)
-        else:
-            print("Invalid index")
+        except (TypeError, InvalidIndexException) as e:
+            raise InvalidIndexException(f"Erro ao remover avaliação de performance: {str(e)}")
     
     def show_performance(self):
         performance_levels = {1: "Good", 2: "Average", 3: "Bad"}
@@ -223,16 +301,28 @@ class Employee(Person, Subject, OrganizationalComponent):
             print("No evaluations found.")
 
     def add_benefit(self, benefit):
-        if benefit not in self._benefits:
-            self._benefits.append(benefit)
-        else:
-            print("Benefit already added.")
+        try:
+            if not isinstance(benefit, str):
+                raise TypeError(f"Benefício deve ser uma string, recebido: {type(benefit).__name__}")
+            if len(benefit.strip()) == 0:
+                raise ValueError("Benefício não pode ser vazio ou conter apenas espaços")
+            if benefit in self._benefits:
+                raise BenefitAlreadyExistsException(f"O benefício '{benefit}' já foi adicionado para este funcionário")
+            self._benefits.append(benefit.strip())
+        except (TypeError, ValueError, BenefitAlreadyExistsException) as e:
+            raise BenefitAlreadyExistsException(f"Erro ao adicionar benefício: {str(e)}")
     
     def remove_benefit(self, benefit):
-        if benefit in self._benefits:
+        try:
+            if not isinstance(benefit, str):
+                raise TypeError(f"Benefício deve ser uma string, recebido: {type(benefit).__name__}")
+            if benefit not in self._benefits:
+                raise BenefitNotFoundException(f"O benefício '{benefit}' não foi encontrado para este funcionário")
+            if len(self._benefits) == 0:
+                raise BenefitNotFoundException("Não há benefícios para remover")
             self._benefits.remove(benefit)
-        else:
-            print("Benefit not found.")
+        except (TypeError, BenefitNotFoundException) as e:
+            raise BenefitNotFoundException(f"Erro ao remover benefício: {str(e)}")
 
 
 class Manager(Employee):
@@ -266,7 +356,11 @@ class Intern(Employee):
     
     def display_info(self):
         super().display_info()
-        print(f"Mentor: {self._mentor.name if self._mentor else 'Not assigned'}")
+        try:
+            mentor_name = self._mentor.name if self._mentor else 'Not assigned'
+            print(f"Mentor: {mentor_name}")
+        except AttributeError:
+            print(f"Mentor: Not assigned (erro ao acessar informações do mentor)")
 
 
 # PADRÃO ESTRUTURAL 1: COMPOSITE (Classe Composite)
@@ -284,7 +378,14 @@ class Department(OrganizationalComponent):
         self._children.append(component)
 
     def remove_component(self, component: OrganizationalComponent):
-        self._children.remove(component)
+        try:
+            if component is None:
+                raise ValueError("Componente não pode ser None")
+            if component not in self._children:
+                raise ValueError(f"Componente '{component.get_role() if hasattr(component, 'get_role') else str(component)}' não encontrado no departamento")
+            self._children.remove(component)
+        except (ValueError, AttributeError) as e:
+            raise ValueError(f"Erro ao remover componente: {str(e)}")
 
     def get_role(self) -> str:
         return f"Department - {self._name}"

@@ -66,6 +66,46 @@ O código foi submetido a um processo de refatoração para melhorar sua estrutu
     -   **Problema:** O código cliente (`main.py`) precisava conhecer e interagir com múltiplos subsistemas (Factory, Singleton, Strategy, Decorator) para realizar tarefas comuns, como contratar um funcionário ou calcular um pagamento.
     -   **Solução:** Foi criada a classe `HRFacade` (`facade.py`) que fornece uma interface única e simplificada. O `main.py` agora só conversa com a fachada, chamando métodos como `hire_employee()` ou `calculate_payment()`. A fachada, por sua vez, coordena internamente todos os subsistemas complexos necessários para executar a tarefa.
 
+## Tratamento de Exceções
+
+O sistema implementa um tratamento robusto e específico de exceções em todas as camadas do código, utilizando exceções customizadas organizadas hierarquicamente:
+
+### Estrutura de Exceções
+
+-   **Hierarquia de Exceções:** Todas as exceções do sistema herdam de `HRSystemException`, permitindo tratamento genérico quando necessário e específico quando apropriado. Exceções específicas são organizadas por domínio (dados de funcionário, frequência, pagamento, etc.).
+
+-   **Exceções por Domínio:**
+    -   **Dados de Funcionário:** `InvalidNameException`, `InvalidAgeException`, `InvalidEmailException`, `InvalidDepartmentException`, `InvalidSalaryException`
+    -   **Operações do Sistema:** `InvalidEmployeeIndexException`, `InvalidEmployeeTypeException`, `ListSynchronizationException`
+    -   **Frequência:** `ClockInWithoutClockOutException`, `ClockOutWithoutClockInException`, `NoAttendanceRecordsException`
+    -   **Pagamento:** `InvalidPaymentCalculationException`, `NegativePaymentException`
+    -   **Outras:** `InvalidPerformanceLevelException`, `BenefitAlreadyExistsException`, `BenefitNotFoundException`
+
+### Características da Implementação
+
+1.  **Validação em Múltiplas Camadas:** O sistema valida dados em diferentes pontos:
+    -   **Camada de Interface (`main.py`):** Validação de inputs do usuário (tipos, ranges, valores vazios)
+    -   **Camada de Facade (`facade.py`):** Validação de parâmetros antes de delegar para subsistemas
+    -   **Camada de Modelo (`models.py`):** Validação de propriedades através de setters
+    -   **Camada de Serviço (`services.py`):** Validação de regras de negócio e cálculos
+
+2.  **Mensagens de Erro Específicas:** Cada exceção fornece mensagens detalhadas que incluem:
+    -   O tipo de erro ocorrido
+    -   O valor recebido (quando aplicável)
+    -   O valor esperado ou range válido
+    -   Contexto adicional quando relevante
+
+3.  **Integridade de Dados:** 
+    -   **Rollback:** Operações complexas (como adicionar funcionário) implementam rollback em caso de falha parcial
+    -   **Sincronização:** Verificação de consistência entre listas relacionadas (funcionários, frequência, compliance)
+    -   **Validação de Índices:** Verificação rigorosa de índices antes de acessar listas, evitando erros de runtime
+
+4.  **Tratamento de Casos Especiais:**
+    -   Validação de sequência de operações (ex: clock in/out)
+    -   Verificação de valores negativos em cálculos financeiros
+    -   Validação de tipos antes de operações críticas
+    -   Tratamento de objetos None e listas vazias
+
 ## Justificativa das Funcionalidades Ausentes
 
 -   **Recruitment and Onboarding:** Não implementado por ser um subsistema complexo com um escopo de dados e regras de negócio distinto da gestão de funcionários internos.
